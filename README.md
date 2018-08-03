@@ -1,0 +1,1 @@
+# cinder_volume_delete
