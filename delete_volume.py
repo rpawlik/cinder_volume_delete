@@ -29,6 +29,8 @@ query2 = "UPDATE cinder.volume_attachment SET attach_status='detached', deleted=
 query3 = "UPDATE cinder.volume_admin_metadata SET deleted=1, updated_at=NOW(), deleted_at=NOW() WHERE volume_id='{}' AND deleted=0".format(vol_uuid)
 query4 = "UPDATE nova.block_device_mapping SET deleted=1, deleted_at=NOW() WHERE volume_id='{}'".format(vol_uuid)
 
+# Ramsey: TODO - turn this into one function or just a for loop to interrate through the queries
+
 # Run DB queries
 try:
     cursor.execute(query1)
