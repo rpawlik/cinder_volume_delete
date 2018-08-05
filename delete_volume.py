@@ -5,7 +5,6 @@ import MySQLdb
 import argparse
 import ConfigParser
 
-
 def main():
     desc = (
         "This script will remove \"stuck\" cinder volumes. "
@@ -48,6 +47,7 @@ def main():
         "UPDATE nova.block_device_mapping SET deleted=1,"
         "deleted_at=NOW() WHERE volume_id='{}'".format(vol_uuid))
 
+    # Ramsey: TODO - turn this into one function or just a for loop to interrate through the queries
     # Run DB queries
     try:
         cursor.execute(query1)
@@ -90,3 +90,4 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
+
