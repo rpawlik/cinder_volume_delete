@@ -1,0 +1,2 @@
+configparser==3.5.0
+MySQL-python==1.2.5
