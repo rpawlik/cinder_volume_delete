@@ -41,13 +41,15 @@ def main():
         SET attach_status='detached',
             deleted=1,
             detach_time=NOW(),
-            deleted_at=NOW()
+            deleted_at=NOW(),
+            updated_at=NOW()
         WHERE deleted=0
           AND volume_id='{}'""".format(vol_uuid))
     queries["nova"].append("""
         UPDATE nova.block_device_mapping
         SET deleted=id,
-            deleted_at=NOW()
+            deleted_at=NOW(),
+            updated_at=NOW()
         WHERE deleted=0
           AND volume_id='{}'""".format(vol_uuid))
 
@@ -55,17 +57,19 @@ def main():
         queries["cinder"].append("""
             UPDATE cinder.volumes
             SET attach_status='detached',
-                deleted_at=NOW(),
                 deleted=1,
                 status='deleted',
-                terminated_at=NOW()
+                terminated_at=NOW(),
+                deleted_at=NOW(),
+                updated_at=NOW()
             WHERE deleted=0
               AND id='{}'""".format(vol_uuid))
         queries["cinder"].append("""
             UPDATE cinder.volume_admin_metadata
             SET deleted=1,
                 updated_at=NOW(),
-                deleted_at=NOW()
+                deleted_at=NOW(),
+                updated_at=NOW()
             WHERE deleted=0
               AND volume_id='{}'""".format(vol_uuid))
 
@@ -74,6 +78,7 @@ def main():
             UPDATE cinder.volumes
             SET attach_status='detached',
                 status='available',
+                updated_at=NOW()
             WHERE deleted=0
               AND id='{}'""".format(vol_uuid))
 
