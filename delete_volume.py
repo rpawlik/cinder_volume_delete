@@ -5,6 +5,7 @@ import argparse
 import ConfigParser
 import MySQLdb
 
+
 def main():
     desc = (
         "This script will remove \"stuck\" cinder volumes. "
@@ -36,31 +37,43 @@ def main():
         }
 
     if not delete:
-        queries["cinder"].append(
-            "UPDATE cinder.volumes SET attach_status='detached',"
-            "status='deleted',attach_status='detached'"
-            "WHERE id='{}'".format(vol_uuid))
-        queries["cinder"].append(
-            "UPDATE cinder.volume_attachment SET attach_status='detached',"
-            "detach_time=NOW() WHERE volume_id='{}'".format(vol_uuid))
+        queries["cinder"].append("""
+            UPDATE cinder.volumes
+            SET attach_status='detached',
+                status='available',
+                attach_status='detached'
+            WHERE id='{}'""".format(vol_uuid))
 
     else:
-        queries["cinder"].append(
-            "UPDATE cinder.volumes SET attach_status='detached',deleted_at=NOW(),"
-            "deleted=1,status='deleted',attach_status='detached',"
-            "terminated_at=NOW() WHERE id='{}'".format(vol_uuid))
-        queries["cinder"].append(
-            "UPDATE cinder.volume_attachment SET attach_status='detached',"
-            "deleted=1, detach_time=NOW(), deleted_at=NOW() "
-            "WHERE volume_id='{}'".format(vol_uuid))
-        queries["cinder"].append(
-            "UPDATE cinder.volume_admin_metadata SET deleted=1,"
-            "updated_at=NOW(), deleted_at=NOW() WHERE "
-            "volume_id='{}' AND deleted=0".format(vol_uuid))
+        queries["cinder"].append("""
+            UPDATE cinder.volumes
+            SET attach_status='detached',
+                deleted_at=NOW(),
+                deleted=1,
+                status='deleted',
+                attach_status='detached',
+                terminated_at=NOW()
+            WHERE id='{}'""".format(vol_uuid))
+        queries["cinder"].append("""
+            UPDATE cinder.volume_admin_metadata
+            SET deleted=1,
+                updated_at=NOW(),
+                deleted_at=NOW()
+            WHERE volume_id='{}'
+              AND deleted=0""".format(vol_uuid))
 
-    queries["nova"].append(
-        "UPDATE nova.block_device_mapping SET deleted=id,"
-        "deleted_at=NOW() WHERE volume_id='{}'".format(vol_uuid))
+    queries["cinder"].append("""
+        UPDATE cinder.volume_attachment
+        SET attach_status='detached',
+            deleted=1,
+            detach_time=NOW(),
+            deleted_at=NOW()
+        WHERE volume_id='{}'""".format(vol_uuid))
+    queries["nova"].append("""
+        UPDATE nova.block_device_mapping
+        SET deleted=id,
+            deleted_at=NOW()
+        WHERE volume_id='{}'""".format(vol_uuid))
 
     for db_name, db_queries in queries.iteritems():
         db = MySQLdb.connect(host=host, user=user, passwd=password, db=db_name)
@@ -70,10 +83,12 @@ def main():
         try:
             for query in db_queries:
                 cursor.execute(query)
-                print "Updating {} row(s) on {}".format(db.affected_rows(), query.split()[1])
+                print "Updating {} row(s) on {}".format(
+                    db.affected_rows(), query.split()[1])
         except Exception as e:
             print e
-            print "Something broke while executing ({}) {}".format(db_name, query)
+            print "Something broke while executing ({}) {}".format(
+                db_name, query)
             db.rollback()
             break
 
@@ -83,6 +98,7 @@ def main():
             break
 
         db.close()
+
 
 def yes_no(answer):
     yes = set(['yes', 'y'])
@@ -96,6 +112,7 @@ def yes_no(answer):
             return False
         else:
             print "Please respond with 'yes' or 'no'\n"
+
 
 if __name__ == '__main__':
     sys.exit(main())
