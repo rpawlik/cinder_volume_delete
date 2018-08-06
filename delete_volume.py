@@ -36,44 +36,46 @@ def main():
         "nova": []
         }
 
-    if not delete:
-        queries["cinder"].append("""
-            UPDATE cinder.volumes
-            SET attach_status='detached',
-                status='available',
-                attach_status='detached'
-            WHERE id='{}'""".format(vol_uuid))
-
-    else:
-        queries["cinder"].append("""
-            UPDATE cinder.volumes
-            SET attach_status='detached',
-                deleted_at=NOW(),
-                deleted=1,
-                status='deleted',
-                attach_status='detached',
-                terminated_at=NOW()
-            WHERE id='{}'""".format(vol_uuid))
-        queries["cinder"].append("""
-            UPDATE cinder.volume_admin_metadata
-            SET deleted=1,
-                updated_at=NOW(),
-                deleted_at=NOW()
-            WHERE volume_id='{}'
-              AND deleted=0""".format(vol_uuid))
-
     queries["cinder"].append("""
         UPDATE cinder.volume_attachment
         SET attach_status='detached',
             deleted=1,
             detach_time=NOW(),
             deleted_at=NOW()
-        WHERE volume_id='{}'""".format(vol_uuid))
+        WHERE deleted=0
+          AND volume_id='{}'""".format(vol_uuid))
     queries["nova"].append("""
         UPDATE nova.block_device_mapping
         SET deleted=id,
             deleted_at=NOW()
-        WHERE volume_id='{}'""".format(vol_uuid))
+        WHERE deleted=0
+          AND volume_id='{}'""".format(vol_uuid))
+
+    if delete:
+        queries["cinder"].append("""
+            UPDATE cinder.volumes
+            SET attach_status='detached',
+                deleted_at=NOW(),
+                deleted=1,
+                status='deleted',
+                terminated_at=NOW()
+            WHERE deleted=0
+              AND id='{}'""".format(vol_uuid))
+        queries["cinder"].append("""
+            UPDATE cinder.volume_admin_metadata
+            SET deleted=1,
+                updated_at=NOW(),
+                deleted_at=NOW()
+            WHERE deleted=0
+              AND volume_id='{}'""".format(vol_uuid))
+
+    else:
+        queries["cinder"].append("""
+            UPDATE cinder.volumes
+            SET attach_status='detached',
+                status='available',
+            WHERE deleted=0
+              AND id='{}'""".format(vol_uuid))
 
     for db_name, db_queries in queries.iteritems():
         db = MySQLdb.connect(host=host, user=user, passwd=password, db=db_name)
